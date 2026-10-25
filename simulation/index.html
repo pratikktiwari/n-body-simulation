@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Explore ring initialization, single-body orbits and a live N-body gravity simulation.">
+    <title>N-body simulation | Initial conditions, orbits and live gravity</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./simulation.js" defer></script>
+</head>
+<body>
+<main>
+    <header class="page-header">
+        <p class="project-name">N-body simulation</p>
+        <h1>Initial conditions and orbital motion</h1>
+        <p>
+            Explore how the starting positions form a disk, see how position and
+            velocity affect an orbit, then run a small N-body system in the
+            browser. Each view explains a different part of the calculation,
+            from generating the starting positions to updating motion under gravity.
+        </p>
+        <nav aria-label="Page sections">
+            <a href="#initialization">Disk initialization</a>
+            <a href="#orbit">Single-body orbit</a>
+            <a href="#nbody">N-body simulation</a>
+        </nav>
+    </header>
+
+    <section id="initialization" class="demo" aria-labelledby="initialization-title">
+        <h2 id="initialization-title">Disk initialization</h2>
+        <p class="section-description" id="disk-instructions">
+            Radius and angle determine x and y, while a small random z value gives
+            the disk thickness. Click a body to inspect its coordinates, or focus a
+            plot and use the arrow keys to change the selection. Drag the 3D view
+            to rotate it and scroll over any plot to zoom.
+        </p>
+        <div class="workspace">
+            <section class="panel controls" aria-labelledby="starting-values-title">
+                <h3 id="starting-values-title">Starting values</h3>
+                <div class="control">
+                    <label for="seed-value">Random seed <output id="seed-value-display">42</output></label>
+                    <input id="seed-value" type="number" step="1" value="42" required>
+                </div>
+                <div class="control">
+                    <label for="body-count">Number of bodies <output id="body-count-value">120</output></label>
+                    <input id="body-count" type="range" min="1" max="400" value="120">
+                </div>
+                <div class="control">
+                    <label for="minimum-distance">Minimum radius <output id="minimum-distance-value">1.0</output></label>
+                    <input id="minimum-distance" type="range" min="0" max="3" step="0.1" value="1">
+                </div>
+                <div class="control">
+                    <label for="maximum-distance">Maximum radius <output id="maximum-distance-value">4.0</output></label>
+                    <input id="maximum-distance" type="range" min="3.1" max="8" step="0.1" value="4">
+                </div>
+                <div class="control">
+                    <label for="thickness">Total z thickness <output id="thickness-value">0.50</output></label>
+                    <input id="thickness" type="range" min="0" max="3" step="0.05" value="0.5">
+                </div>
+                <button id="regenerate" type="button">Generate with seed 42</button>
+                <p id="disk-status" class="status" role="status"></p>
+                <p class="note">
+                    The seed controls the random starting values, so keeping the
+                    same seed and settings recreates the same bodies.
+                </p>
+            </section>
+
+            <div class="visuals">
+                <section class="panel" aria-labelledby="top-view-title">
+                    <header class="plot-header"><h3 id="top-view-title">Top view</h3><p class="plot-hint">x / y</p></header>
+                    <canvas id="top-view" tabindex="0" aria-label="Top view of the disk" aria-describedby="disk-instructions">
+                        A browser with canvas support is needed to display the disk.
+                    </canvas>
+                </section>
+                <section class="panel" aria-labelledby="side-view-title">
+                    <header class="plot-header"><h3 id="side-view-title">Side view</h3><p class="plot-hint">Independent x / z scales</p></header>
+                    <canvas id="side-view" tabindex="0" aria-label="Side view of the disk" aria-describedby="disk-instructions">
+                        A browser with canvas support is needed to display the disk.
+                    </canvas>
+                </section>
+                <section class="panel full-width" aria-labelledby="three-dimensional-title">
+                    <header class="plot-header"><h3 id="three-dimensional-title">3D view</h3><p class="plot-hint">Drag to rotate</p></header>
+                    <canvas id="three-dimensional-view" class="interactive-view" tabindex="0"
+                        aria-label="Rotatable 3D view of the disk" aria-describedby="disk-instructions">
+                        A browser with canvas support is needed to display the disk.
+                    </canvas>
+                </section>
+                <section class="panel details full-width" aria-labelledby="selected-title">
+                    <div class="details-header">
+                        <h3 id="selected-title" aria-live="polite">Selected body #0</h3>
+                        <label class="body-picker" for="selected-body">
+                            Inspect body
+                            <input id="selected-body" type="number" min="0" max="119" step="1" value="0"
+                                aria-describedby="selection-status" required>
+                        </label>
+                    </div>
+                    <p id="selection-status" class="status" role="status"></p>
+                    <div class="equations">
+                        <div class="equation"><strong>x position</strong><code id="x-equation"></code></div>
+                        <div class="equation"><strong>y position</strong><code id="y-equation"></code></div>
+                        <div class="equation"><strong>z position</strong><code id="z-equation"></code></div>
+                    </div>
+                    <p class="summary" id="body-summary"></p>
+                    <ul class="legend" aria-label="Disk plot legend">
+                        <li><span class="swatch" aria-hidden="true"></span>Body (colors repeat by index)</li>
+                        <li><span class="swatch selected" aria-hidden="true"></span>Selected body outline</li>
+                        <li><span class="swatch height" aria-hidden="true"></span>Selected z height</li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+    </section>
+
+    <section id="orbit" class="demo" aria-labelledby="orbit-title">
+        <h2 id="orbit-title">Single-body orbit</h2>
+        <p class="section-description" id="orbit-instructions">
+            A fixed central body pulls the moving body towards the origin, while
+            its velocity carries it sideways. Change the starting coordinates and
+            reset the orbit to apply them; gravity, mass and time step apply as
+            they change. Drag the plot to rotate it, or focus it and use the arrow
+            keys. Scroll to zoom.
+        </p>
+        <div class="workspace">
+            <section class="panel controls" aria-label="Orbit settings">
+                <fieldset>
+                    <legend>Starting position</legend>
+                    <div class="coordinate-inputs">
+                        <label>x<input id="orbit-position-x" aria-label="Starting position x" type="number" step="0.1" value="2" required></label>
+                        <label>y<input id="orbit-position-y" aria-label="Starting position y" type="number" step="0.1" value="0" required></label>
+                        <label>z<input id="orbit-position-z" aria-label="Starting position z" type="number" step="0.1" value="0" required></label>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Starting velocity</legend>
+                    <div class="coordinate-inputs">
+                        <label>x<input id="orbit-velocity-x" aria-label="Starting velocity x" type="number" step="0.05" value="0" required></label>
+                        <label>y<input id="orbit-velocity-y" aria-label="Starting velocity y" type="number" step="0.05" value="0.71" required></label>
+                        <label>z<input id="orbit-velocity-z" aria-label="Starting velocity z" type="number" step="0.05" value="0" required></label>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Gravity and integration</legend>
+                    <label class="orbit-parameter">Central mass
+                        <input id="orbit-central-mass" type="number" min="0.01" step="0.1" value="1" required>
+                    </label>
+                    <label class="orbit-parameter">Gravity G
+                        <input id="orbit-gravity" type="number" min="0.01" step="0.1" value="1" required>
+                    </label>
+                    <label class="orbit-parameter">Time step
+                        <input id="orbit-time-step" type="number" min="0.001" max="0.1" step="0.001" value="0.01" required>
+                    </label>
+                </fieldset>
+                <div class="orbit-buttons">
+                    <button id="orbit-toggle" type="button" aria-pressed="false">Start orbit</button>
+                    <button id="orbit-reset" type="button" class="secondary">Reset orbit</button>
+                </div>
+                <p id="orbit-status" class="status" role="status"></p>
+                <p class="note">Try a starting z velocity of 0.3, then reset to see a tilted orbit.</p>
+            </section>
+            <section class="panel" aria-labelledby="orbit-view-title">
+                <header class="plot-header"><h3 id="orbit-view-title">Orbital path</h3><p class="plot-hint">Drag to rotate</p></header>
+                <canvas id="orbit-view" class="interactive-view" tabindex="0"
+                    aria-label="Rotatable view of the single-body orbit" aria-describedby="orbit-instructions">
+                    A browser with canvas support is needed to display the orbit.
+                </canvas>
+                <dl class="orbit-readouts">
+                    <div class="readout"><dt>Position (x, y, z)</dt><dd><output id="orbit-position-output" aria-live="off"></output></dd></div>
+                    <div class="readout"><dt>Velocity (vx, vy, vz)</dt><dd><output id="orbit-velocity-output" aria-live="off"></output></dd></div>
+                    <div class="readout"><dt>Current speed</dt><dd><output id="orbit-speed-output" aria-live="off"></output></dd></div>
+                    <div class="readout"><dt>Circular-orbit speed here</dt><dd><output id="orbit-circular-speed-output" aria-live="off"></output></dd></div>
+                </dl>
+            </section>
+        </div>
+        <div class="explanation">
+            <ul class="legend" aria-label="Orbit plot legend">
+                <li><span class="swatch central" aria-hidden="true"></span>Central body</li>
+                <li><span class="swatch" aria-hidden="true"></span>Orbiting body</li>
+                <li><span class="swatch selected" aria-hidden="true"></span>Position vector</li>
+                <li><span class="swatch velocity" aria-hidden="true"></span>Velocity arrow</li>
+                <li><span class="swatch path" aria-hidden="true"></span>Previous path</li>
+            </ul>
+            <p class="note">
+                The position line runs from the origin to the body, while the velocity
+                arrow shows its direction, not its magnitude. For a circular orbit,
+                velocity is perpendicular to that line and its speed is
+                <code>sqrt(G * central mass / distance)</code>.
+            </p>
+            <p class="note">
+                Velocity-Verlet updates the moving body's position and velocity
+                under the pull of the fixed central body. Force distance is
+                clamped to 0.05 near the origin, and each animation frame advances
+                four simulation steps, so playback speed depends on the display.
+            </p>
+        </div>
+    </section>
+    <section id="nbody" class="demo" aria-labelledby="nbody-title">
+        <h2 id="nbody-title">N-body simulation</h2>
+        <p class="section-description" id="nbody-instructions">
+            Every body now pulls on every other body, with no fixed central mass.
+            Bodies start in a ring with random positions and masses, along with
+            sideways velocities that depend on their distance from the center.
+            Drag the view to rotate it, use the arrow keys when the plot is
+            focused, or scroll to zoom.
+        </p>
+        <div class="workspace">
+            <section class="panel controls" aria-labelledby="nbody-settings-title">
+                <h3 id="nbody-settings-title">Simulation settings</h3>
+                <div class="control">
+                    <label for="nbody-seed">Random seed</label>
+                    <input id="nbody-seed" type="number" step="1" value="42" required>
+                </div>
+                <div class="control">
+                    <label for="nbody-count">Number of bodies</label>
+                    <input id="nbody-count" type="number" min="1" max="400" step="1" value="120" required>
+                </div>
+                <div class="control">
+                    <label for="nbody-gravity">Gravity G</label>
+                    <input id="nbody-gravity" type="number" min="0" step="0.001" value="0.001" required>
+                </div>
+                <div class="control">
+                    <label for="nbody-softening">Squared softening length</label>
+                    <input id="nbody-softening" type="number" min="0.000001" step="0.000001" value="0.01" required>
+                </div>
+                <div class="control">
+                    <label for="nbody-time-step">Time step</label>
+                    <input id="nbody-time-step" type="number" min="0.0001" max="0.1" step="0.0001" value="0.005" required>
+                </div>
+                <div class="orbit-buttons">
+                    <button id="nbody-toggle" type="button" aria-pressed="false">Start</button>
+                    <button id="nbody-reset" type="button" class="secondary">Reset</button>
+                </div>
+                <p id="nbody-status" class="status" role="status"></p>
+                <p class="note">
+                    Changing settings pauses the demo; start or reset to apply them.
+                    The limit of 400 bodies keeps the direct calculation manageable
+                    in a browser, while the same seed and settings recreate the
+                    starting system.
+                </p>
+            </section>
+            <section class="panel" aria-labelledby="nbody-view-title">
+                <header class="plot-header">
+                    <h3 id="nbody-view-title">Live system</h3>
+                    <p class="plot-hint">3D view / drag to rotate</p>
+                </header>
+                <canvas id="nbody-view" class="interactive-view" tabindex="0"
+                    aria-label="Rotatable view of the live N-body simulation" aria-describedby="nbody-instructions">
+                    A browser with canvas support is needed to display the N-body system.
+                </canvas>
+                <dl class="orbit-readouts">
+                    <div class="readout"><dt>Bodies</dt><dd><output id="nbody-count-output" aria-live="off"></output></dd></div>
+                    <div class="readout"><dt>Simulated time</dt><dd><output id="nbody-time-output" aria-live="off"></output></dd></div>
+                    <div class="readout"><dt>Completed steps</dt><dd><output id="nbody-steps-output" aria-live="off"></output></dd></div>
+                    <div class="readout"><dt>Mean speed</dt><dd><output id="nbody-speed-output" aria-live="off"></output></dd></div>
+                </dl>
+            </section>
+        </div>
+        <div class="explanation">
+            <p class="note">
+                Each body keeps a color from a repeating palette, while marker size
+                follows mass and the view expands as bodies move outwards.
+                Each step sums softened gravity from the old positions,
+                updates velocity, then uses the new velocity to move every body.
+                With only 120 bodies and G = 0.001, the sideways motion can dominate;
+                increasing G makes the mutual attraction easier to see.
+            </p>
+            <p class="note">
+                The system uses a direct all-pairs gravity calculation with
+                semi-implicit Euler. It advances four steps per animation frame, so playback
+                speed depends on the device; large time steps can make the motion
+                inaccurate even with softening.
+            </p>
+        </div>
+    </section>
+    <noscript><p>JavaScript must be enabled to draw the plots and run the simulations.</p></noscript>
+</main>
+</body>
+</html>
