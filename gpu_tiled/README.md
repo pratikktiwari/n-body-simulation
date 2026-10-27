@@ -37,17 +37,22 @@ nvcc -O3 -arch=sm_75 -o nbody_tiled.out nbody_tiled.cu \
 ./nbody_tiled.out
 ```
 
-The launch and tile size both use `BLOCK_SIZE`, while runtime settings follow
-the [shared direct-version arguments](../README.md#running-the-notebooks).
+The launch and tile size both use `BLOCK_SIZE`, while the notebook reads its
+runtime settings from [comparison_config.json](../comparison_config.json) and
+passes the [shared direct-version arguments](../README.md#running-the-notebooks)
+explicitly.
 The position/mass and velocity layouts remain `float4` and `float3`, with the
 same reciprocal-square-root force calculation as naive CUDA.
 
 ## What to compare
 
 CUDA events measure each update kernel, and frame transfers back to the CPU
-plus CSV writes are timed separately as saving. The scaling sweep runs 100
-steps with the other source defaults, including saving, so its compute chart
-can be compared with naive CUDA's kernel time under matching settings.
+plus CSV writes are timed separately as saving. The scaling sweep runs the
+shared body counts for 100 steps with frame saving disabled, so its compute
+chart can be compared with naive CUDA's kernel time under matching inputs.
+Benchmark runs use temporary folders and keep the main frames and final state
+unchanged; `run.json` and `scaling.json` record settings and provenance for
+[compare.ipynb](../compare.ipynb), which also displays the main GIF.
 
 Tiling still has quadratic pair work and adds barriers, so the benefit depends
 on body count, memory reuse and the GPU rather than being a guaranteed speedup

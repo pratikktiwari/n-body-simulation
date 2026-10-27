@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "variant": "cpu",
+  "configuration": {
+    "seed": 42,
+    "time_step": 0.005,
+    "gravitational_constant": 0.001,
+    "softening": 0.01,
+    "main": {
+      "bodies": 10000,
+      "steps": 1000,
+      "save_every": 2
+    },
+    "benchmark": {
+      "body_counts": [
+        16,
+        64,
+        256,
+        1024,
+        2048,
+        4096,
+        8192,
+        10000
+      ],
+      "steps": 100,
+      "save_every": 0
+    },
+    "optimised_slices": 0,
+    "barnes_hut": {
+      "scenario": 2,
+      "opening_angle": 0.6,
+      "resort_every": 4,
+      "max_frame_bodies": 32768,
+      "check_bodies": 0
+    }
+  },
+  "configuration_id": "6a3fb11b78f2e250edab089ce33ca079efe055ca640f1f0a8ad58bb3935e287b",
+  "created_at": "2026-10-25T17:54:49.794587+00:00",
+  "hardware": {
+    "host": "PRATIKs-MacBook-Pro.local",
+    "system": "macOS-27.0.1-arm64-arm-64bit",
+    "cpu": "arm",
+    "gpu": null,
+    "cuda_visible_devices": "all"
+  },
+  "executable_sha256": "53975998bfbeeca90e78ff42bdc0c685e5054e61ddefb1a68c3d799c670999da",
+  "artifacts": {
+    "scaling.csv": "74f66847b12c31819a0447bcccfdea2bc984cb58bf5d054795f5bdb9980325eb"
+  },
+  "initial_state_id": "7275d6245fe8cc9b2757a5437419553ce220e5b30a277bc9647e1cace18b1253",
+  "timing_scope": "Host compute wall time"
+}

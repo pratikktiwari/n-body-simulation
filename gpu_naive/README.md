@@ -33,12 +33,13 @@ output filenames:
 ```bash
 nvcc -O3 -arch=sm_75 -o nbody_naive.out nbody_naive.cu \
   '-DPOSITIONS_FILE="positions.csv"' '-DFINAL_STATE_FILE="final_state.csv"'
-./nbody_naive.out 3296
+./nbody_naive.out 10000 1000 0.005 2 0.001 0.01
 ```
 
-The main notebook run supplies 3,296 bodies, while omitted settings come from
-the source constants. `BLOCK_SIZE` is a compile-time setting rather than an
-extra command-line argument, and the remaining arguments follow the
+The notebook takes its main and benchmark inputs from
+[comparison_config.json](../comparison_config.json), passing every runtime
+setting explicitly. `BLOCK_SIZE` is a compile-time setting rather than an
+extra command-line argument, and the arguments follow the
 [shared direct-version order](../README.md#running-the-notebooks).
 
 ## Transfers and timing
@@ -54,8 +55,10 @@ cleanup. Small runs can spend more time on startup and launches than useful
 parallel work, so a low body count does not necessarily show the benefit of
 using a GPU.
 
-The scaling sweep runs 100 steps per body count and inherits the other source
-defaults, including frame saving. Its compute chart therefore isolates kernel
-time, but its total-runtime chart still includes the cost of saving; the shared
+The scaling sweep uses the shared body counts for 100 steps without saving
+frames, so its inputs match the other variants. Temporary benchmark folders
+keep the main frames and final state intact, and saved exports in `run.json`
+and `scaling.json` let [compare.ipynb](../compare.ipynb) load the timings and GIF
+without running another simulation. The shared
 [performance guide](../README.md#reading-the-performance-results) explains the
-pair-rate and GFLOPS estimates.
+timing boundaries and throughput estimates.

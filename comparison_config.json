@@ -1,0 +1,24 @@
+{
+  "seed": 42,
+  "time_step": 0.005,
+  "gravitational_constant": 0.001,
+  "softening": 0.01,
+  "main": {
+    "bodies": 10000,
+    "steps": 1000,
+    "save_every": 2
+  },
+  "benchmark": {
+    "body_counts": [16, 64, 256, 1024, 2048, 4096, 8192, 10000],
+    "steps": 100,
+    "save_every": 0
+  },
+  "optimised_slices": 0,
+  "barnes_hut": {
+    "scenario": 2,
+    "opening_angle": 0.6,
+    "resort_every": 4,
+    "max_frame_bodies": 32768,
+    "check_bodies": 0
+  }
+}

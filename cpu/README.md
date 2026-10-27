@@ -35,11 +35,13 @@ is:
 ```bash
 g++ -O3 -o nbody_cpu.out nbody_cpu.cpp \
   '-DPOSITIONS_FILE="positions.csv"' '-DFINAL_STATE_FILE="final_state.csv"'
-./nbody_cpu.out 3296
+./nbody_cpu.out 10000 1000 0.005 2 0.001 0.01
 ```
 
-The notebook's main run supplies 3,296 bodies, while running the executable
-without arguments uses `NUM_BODIES`; the remaining argument order is the
+The notebook reads [comparison_config.json](../comparison_config.json), passes
+every run argument explicitly and exports results through
+[benchmark.py](../benchmark.py). The example above matches its current main run;
+the remaining argument order is the
 [shared direct-version order](../README.md#running-the-notebooks).
 
 ## What the measurements include
@@ -49,8 +51,10 @@ position-buffer swap, while saving time covers frame CSV writes. Total time
 also includes setup, final-state output and cleanup, and the GPU time field is
 zero because this implementation does not use a GPU.
 
-The scaling sweep uses 16, 64, 256, 1,024, 2,048, 4,096 and 10,000 bodies,
-inheriting the source's other defaults, including 1,000 steps and frame saving.
-That is a different step count from the CUDA sweeps, so compare per-step compute
-time or match the settings before comparing total runtime; buffered writes also
-mean the saving timer is not a pure measurement of disk speed.
+The scaling sweep uses the common body counts, including 8,192, with 100 steps
+and frame saving disabled, so its inputs match the CUDA sweeps. Benchmark files
+are written in temporary folders rather than replacing the main outputs, while
+`scaling.csv` and `scaling.json` keep the measurements and provenance for
+[compare.ipynb](../compare.ipynb). The main run's `run.json` also records its
+settings and output checksums, and its GIF uses the same view and playback rate
+as the other variants.

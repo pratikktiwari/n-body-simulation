@@ -39,6 +39,10 @@ This version adds a final argument to the shared direct-version settings:
 ./nbody_opt.out [bodies] [steps] [timeStep] [saveEvery] [gravitationalConstant] [softening] [slices]
 ```
 
+The notebook reads [comparison_config.json](../comparison_config.json) and
+passes every argument explicitly, including the requested slice selection.
+Its main ring, body count and physical inputs match the other variants.
+
 `NUM_SLICES` defaults to zero, and a nonpositive runtime value enables automatic
 selection; an explicit value should be one of the supported slice counts above.
 The `--use_fast_math` flag and the changed summation order can affect rounding,
@@ -63,9 +67,12 @@ CUDA's per-kernel measurements. Saving time covers the later bulk transfer and
 frame CSV writes, while total runtime also includes tuning, setup, final-state
 output and cleanup.
 
-The scaling sweep uses 100 steps and the remaining source defaults, including
-saving. Match that saving policy when comparing versions, or disable frames
-consistently if the aim is to compare force computation; the shared
+The scaling sweep uses the shared body counts for 100 steps with frame saving
+disabled, so buffered frame copies are outside that compute measurement.
+Temporary benchmark folders preserve the main outputs, while `run.json` and
+`scaling.json` record settings and provenance for
+[compare.ipynb](../compare.ipynb). The main GIF has the same view and playback
+rate as the other variants, and the shared
 [performance formulas](../README.md#reading-the-performance-results) still use
 the nominal direct pair count and exclude reduction overhead from the operation
 estimate.

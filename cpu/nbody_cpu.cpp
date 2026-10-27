@@ -5,6 +5,10 @@
 #include <chrono>
 #include <utility>
 
+#ifndef INITIAL_SEED
+#define INITIAL_SEED 42
+#endif
+
 // Number of bodies in the simulation
 const int NUM_BODIES = 10000;
 
@@ -48,7 +52,7 @@ double nowMs()
 void initBodies(Body* pos, Velocity* vel, int numBodies)
 {
     // Same seed for repeatable starting values.
-    srand(42);
+    srand(INITIAL_SEED);
 
     for (int i = 0; i < numBodies; i++)
     {
@@ -126,6 +130,7 @@ void printReport(const char* version, int numBodies, int numSteps, double setupM
     // About 20 floating point operations per pair of bodies.
     double pairs = (double)numBodies * numBodies * numSteps;
     printf("version              : %s\n", version);
+    printf("random seed          : %u\n", (unsigned int)INITIAL_SEED);
     printf("bodies               : %d\n", numBodies);
     printf("steps                : %d\n", numSteps);
     printf("time step            : %.9g\n", timeStep);
@@ -172,6 +177,12 @@ int main(int argc, char** argv)
     double setupMs = nowMs() - programStart;
     double computeMs = 0.0;
     double saveMs = 0.0;
+    if (saveEvery > 0)
+    {
+        double saveStart = nowMs();
+        saveFrame(framesFile, 0, position, numBodies);
+        saveMs += nowMs() - saveStart;
+    }
 
     // Run the simulation.
     for (int step = 0; step < numSteps; step++)
@@ -181,10 +192,10 @@ int main(int argc, char** argv)
         std::swap(position, newPosition);
         computeMs += nowMs() - start;
 
-        if (saveEvery > 0 && step % saveEvery == 0)
+        if (saveEvery > 0 && (step + 1) % saveEvery == 0)
         {
             start = nowMs();
-            saveFrame(framesFile, step, position, numBodies);
+            saveFrame(framesFile, step + 1, position, numBodies);
             saveMs += nowMs() - start;
         }
     }

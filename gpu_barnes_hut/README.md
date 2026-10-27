@@ -37,15 +37,16 @@ when many nodes need to be opened.
 
 ## Scenes and tree settings
 
-Unlike the ring versions, this notebook starts with two tilted rotating
-galaxies by default, with a cold uniform sphere available as scenario 0.
-Galaxy disk masses scale with body count and starting orbital speeds depend
-on G, so matching the shared constants does not make these scenes equivalent
-to the ring or guarantee the same visible motion.
+The comparison workflow starts with the same ring as the direct versions,
+using scenario 2 and the inputs in
+[comparison_config.json](../comparison_config.json). A cold uniform sphere
+remains available as scenario 0 and two tilted rotating galaxies as scenario 1
+when running separate experiments. The galaxy masses and velocities use their
+own initialization rules, so those scenes are not used for the shared comparison.
 
 | Setting | Default | Purpose |
 |---|---:|---|
-| `SCENARIO` | 1 | Two galaxies; 0 selects the sphere |
+| `SCENARIO` | 2 | Ring; 0 selects the sphere and 1 selects two galaxies |
 | `OPENING_ANGLE` | 0.6 | Controls how readily a group is accepted |
 | `MODE` | `tree` | `direct` uses the reference all-pairs kernel |
 | `LEAF` | 16 | Maximum bodies per leaf, set at compile time |
@@ -55,15 +56,16 @@ to the ring or guarantee the same visible motion.
 
 The common physical defaults are listed in the [parent README](../README.md#starting-conditions-and-units).
 The opening angle is clamped to zero through one, body count to at least two,
-and sort/save intervals to at least one, which means **zero does not disable
-frame saving here**. A force-check count of zero skips that check, and only
-the exact mode string `direct` selects the direct kernel.
+and the sort interval to at least one. A save interval of zero now disables
+all frames, including the initial frame, just as it does in the direct versions.
+A force-check count of zero skips that check, and only the exact mode string
+`direct` selects the direct kernel. The shared notebook runs disable the force
+check so its extra setup work is kept in the separate accuracy experiment.
 
 ## Build and run
 
 Generate `nbody_tree.cu` from the notebook, then compile with CUDA and Thrust
-available. The renderer also needs SciPy in addition to the shared Python
-packages:
+available. The renderer uses the shared Python packages:
 
 ```bash
 nvcc -O3 -arch=sm_75 --use_fast_math nbody_tree.cu -o nbody_tree.out \
@@ -99,9 +101,11 @@ for motion.
 
 The default run saves 501 frames of 10,000 bodies, roughly 80 MB, with later
 frames buffered on the GPU before a bulk copy to pinned host memory. The GIF
-uses an orbiting camera, density glow and fading trails, while the final CSV
-keeps original masses and body order with columns `i,x,y,z,vx,vy,vz,m`, capped
-at the first 100,000 bodies.
+uses the same x-y view, mass coloring and playback rate as the other variants,
+while the final CSV keeps original masses and body order with columns
+`i,x,y,z,vx,vy,vz,m`, capped at the first 100,000 bodies. Saved exports in
+`run.json` and `scaling.json` connect these outputs to
+[compare.ipynb](../compare.ipynb).
 
 ## Accuracy and performance experiments
 
@@ -116,11 +120,12 @@ covers the whole simulation loop, including frame capture and synchronization.
 Saving time covers the later frame transfer and final-state writes, and total
 time runs from main entry to reporting, before cleanup.
 
-The scaling sweep measures tree runs for 20 steps and direct runs for five
-steps up to 262,144 bodies, then labels larger direct times as projections
-from the last measured rate. Benchmarks use a save interval longer than the
-run so only the initial frame is written, and the plots compare per-step time,
-tree phases and the explicitly labeled all-pairs-equivalent rate.
+The scaling sweep uses the same body counts and 100 steps as the other
+variants, with frame saving and the force check disabled. It records measured
+tree timings rather than projecting larger direct runs, and its plots show
+compute time, tree phases and total executable time. All benchmark, accuracy
+and leaf runs use temporary output folders so they cannot overwrite the main
+frames or final state.
 
 The angle sweep checks accuracy at different opening angles, while the leaf
 sweep recompiles with 8, 16, 32 and 64 bodies per leaf to compare the balance

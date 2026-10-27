@@ -50,9 +50,9 @@ boundaries differ from naive and tiled.
 These changes do not guarantee that each version is faster than the previous
 one for every body count, since synchronization, reductions and tree construction
 also take time. Comparisons need matching starting conditions and saving
-settings, along with compatible timing boundaries; Barnes-Hut starts with a
-different scene by default, and a smaller opening angle generally means more
-work in exchange for better force accuracy.
+settings, along with compatible timing boundaries. All five comparison runs
+now start with the same ring, while a smaller Barnes-Hut opening angle generally
+means more work in exchange for better force accuracy.
 
 ## What the simulation calculates
 
@@ -149,7 +149,7 @@ solution, so energy can drift and bodies do not merge or bounce when they meet.
 
 ## Starting conditions and units
 
-The CPU, naive, tiled and optimised versions start with the same thin ring. For
+All five comparison runs start with the same thin ring. For
 independent random samples u between approximately zero and one, the starting
 positions and masses are:
 
@@ -175,9 +175,8 @@ stable orbit in the combined gravitational field, and they do not adjust when G
 changes. A fixed seed repeats the starting values on the same C library, but
 macOS and Linux do not necessarily produce the same random sequence.
 
-Barnes-Hut has separate sphere and galaxy scenes, with the galaxies selected by
-default, so matching its constants with a ring simulation does not make the
-initial conditions equivalent.
+Barnes-Hut uses scenario 2 for this ring, while its sphere and galaxy scenes
+remain available as scenarios 0 and 1 for separate experiments.
 
 The current source defaults are shared across the five implementations:
 
@@ -186,7 +185,7 @@ The current source defaults are shared across the five implementations:
 | `NUM_BODIES` | 10000 | Number of bodies |
 | `NUM_STEPS` | 1000 | Number of updates |
 | `TIME_STEP` | 0.005 | Simulated time per update |
-| `SAVE_EVERY` | 2 | Frame interval, with version-specific handling of zero |
+| `SAVE_EVERY` | 2 | Frame interval; zero disables frame saving |
 | `GRAVITATIONAL_CONSTANT` | 0.001 | Gravity strength in simulation units |
 | `SOFTENING` | 0.01 | Squared softening length |
 
@@ -202,27 +201,41 @@ T=S\Delta t=1000\times0.005=5
 $$
 
 This is five simulated time units, regardless of how long the computer takes.
-The CPU and naive notebooks currently override the main run's body count to
-3,296; omitted command-line arguments still come from the source constants.
+Every notebook reads [comparison_config.json](./comparison_config.json) for its
+run settings rather than relying on omitted command-line arguments. The main
+run uses 10,000 bodies and 1,000 steps, while every scaling sweep uses 16, 64,
+256, 1,024, 2,048, 4,096, 8,192 and 10,000 bodies for 100 steps with frame saving
+disabled. The shared seed is passed to the compiler as `INITIAL_SEED`, so changing
+it means rerunning the source and compilation cells as well.
 
 ## Running the notebooks
 
 The CPU notebook needs a C++ compiler, while the CUDA notebooks need an NVIDIA
 GPU, a compatible driver and the CUDA toolkit with `nvcc`. Apple Silicon cannot
 run these CUDA kernels. Python 3.10+, Jupyter/IPython, NumPy, pandas, Matplotlib
-and Pillow are used for the notebook workflow, with SciPy additionally used by
-the Barnes-Hut renderer.
+and Pillow are used for the notebook workflow.
 
-Start the kernel in the implementation's folder and run the cells in order:
+Keep [benchmark.py](./benchmark.py) and the shared configuration in the project
+root, including when copying the project to a CUDA machine or Colab. Start the
+kernel in the implementation's folder or the project root and run the cells in order:
 platform information, filename constants, source generation, compilation, the
-main simulation, final-state inspection, animation, then benchmarks. Animation
-comes before benchmarking because each executable run overwrites the simulation
-output, which would otherwise replace the main run's frames before they are read.
+main simulation, final-state inspection, animation, then benchmarks. Main outputs
+replace the previous run after the solver finishes and its frames are loaded.
+Benchmark and accuracy runs use temporary folders so the saved main frames and
+final state stay intact.
 
-The constants cell below platform information controls saved filenames, while
-source and executable names stay fixed. The compilation cell passes C++ output
-filenames as quoted compiler definitions, so changing one of those filenames
-requires recompilation before running again.
+The settings cell below platform information loads the shared configuration,
+selects the variant's output folder and lists the standard saved filenames,
+while source and executable names stay fixed. The compilation cell passes C++ output
+filenames as quoted compiler definitions. Keep the standard filenames for the
+shared export and comparison workflow.
+
+The helpers assume valid settings and that the prerequisites and earlier cells
+have been run. They read configuration, reports and saved files directly, without
+custom input or file validation. Missing files, malformed data and failed solver
+commands surface as normal Python or subprocess errors. Keep main frame saving
+enabled, use ring scenario 2 for comparisons, and rerun the source, compilation
+and output cells after changing settings.
 
 The compile commands use `-O3` for optimization, and CUDA commands currently
 target `sm_75`, as used by an NVIDIA T4. Optimised CUDA and Barnes-Hut also use
@@ -253,17 +266,20 @@ are not needed:
 | `FINAL_STATE_FILE` | `final_state.csv` | Final state: `id,x,y,z,vx,vy,vz,mass` |
 | `SCALING_FILE` | `scaling.csv` | One row of settings and measurements per benchmark run |
 | `GIF_FILE` | `nbody.gif` | Animation of the main run |
+| Shared export | `run.json` | Main settings, hardware, frame steps and output checksums |
+| Shared export | `scaling.json` | Benchmark settings, hardware, timing scope and CSV checksum |
 
-Frames are saved after updates labeled `0, SAVE_EVERY, ...`, so label zero is
-not the starting state; its simulated time is given by:
+Every variant now saves the initial state as step zero, then a frame after each
+completed save interval. With a save interval of two, the labels are
+`0, 2, 4, ...`, and frame time is:
 
 $$
-t_{\mathrm{frame}}=(\mathrm{step}+1)\Delta t
+t_{\mathrm{frame}}=\mathrm{step}\Delta t
 $$
 
-Zero disables frame rows in the direct versions, although a header-only positions
-file is still created and cannot be animated. Barnes-Hut instead saves an initial
-frame in a binary file and clamps the save interval to at least one.
+Zero disables frames in every version, leaving a header-only positions CSV or
+binary file. Benchmarks discard those temporary files after collecting their
+timings, while main runs keep saving enabled to produce the animations.
 
 The simulation state CSVs use six decimal places, so a very small change may not
 appear in the saved text. The ring GIFs show an x-y projection and use the 90th
@@ -316,8 +332,26 @@ time is also different from wall time, so end-to-end comparisons should use
 compatible settings and timing boundaries, including the same saving policy.
 Compilation and GIF creation are outside the executable's total runtime.
 
-[compare.ipynb](./compare.ipynb) provides a separate comparison notebook, but
-contains its own embedded sources rather than importing the folder notebooks,
-so their later changes are not automatically reflected there. Match the initial
-conditions, parameters, step counts and compiler options before treating runs as
-equivalent, and remember that host-side checks cannot establish CUDA performance.
+[compare.ipynb](./compare.ipynb) only loads the outputs from the five folders,
+without compiling sources or starting simulations. It skips missing exports,
+different configurations and mismatched main/benchmark builds, shows measurements and hardware,
+then plots compute time, total runtime and compatible CPU speedups alongside
+the saved GIFs and final positions. Old CSVs without the new metadata need to be
+regenerated. Checksums are recorded as provenance, not revalidated when reading.
+Speedups are omitted when hardware or starting-state checks do
+not match. Direct kernels and the tree have different timing boundaries and
+accuracy trade-offs even with common inputs, so the charts do not establish a
+universal ranking.
+
+## Checking the comparison workflow
+
+With the notebook Python dependencies installed, run:
+
+```bash
+python -m unittest discover -s tests -p 'test_benchmark.py' -v
+```
+
+These checks compile small CPU runs and test saved frame steps, output
+preservation, metadata exports and the comparison charts. Temporary fixtures
+exercise the CUDA output formats without pretending to measure GPU performance;
+the CUDA kernels still need to be compiled and run on an NVIDIA GPU.
