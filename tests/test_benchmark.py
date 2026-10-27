@@ -6,6 +6,7 @@ import re
 import shutil
 import struct
 import subprocess
+import sys
 import tempfile
 import unittest
 import warnings
@@ -25,6 +26,78 @@ import benchmark
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class NotebookSetupTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix="nbody-notebook-")
+        self.addCleanup(temporary.cleanup)
+        self.runtime = Path(temporary.name).resolve()
+        self.project = self.runtime / "Drive project with spaces"
+        self.project.mkdir()
+        for name in ["benchmark.py", "comparison_config.json"]:
+            shutil.copyfile(ROOT / name, self.project / name)
+        for specification in benchmark.VARIANTS.values():
+            (self.project / specification["folder"]).mkdir()
+        self.notebooks = [
+            ("compare.ipynb", None),
+            ("cpu/cpu.ipynb", "cpu"),
+            ("gpu_naive/naive.ipynb", "gpu_naive"),
+            ("gpu_tiled/tiled.ipynb", "gpu_tiled"),
+            ("gpu_optimised/optimised.ipynb", "gpu_optimised"),
+            ("gpu_barnes_hut/barnes_hut.ipynb", "gpu_barnes_hut"),
+        ]
+
+    def check_setup(self, name, folder, start, colab=False):
+        notebook = json.loads((ROOT / name).read_text())
+        source = "".join(notebook["cells"][2 if folder else 1]["source"])
+        drive_path = 'Path("/content/drive/MyDrive/projects/n-body-simulation")'
+        self.assertIn(drive_path, source)
+        if colab:
+            source = source.replace(drive_path, f"Path({str(self.project)!r})")
+        prelude = """
+import sys
+from pathlib import Path
+from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock
+"""
+        if colab:
+            prelude += """
+drive = SimpleNamespace(mount=Mock())
+google = ModuleType("google")
+colab = ModuleType("google.colab")
+colab.drive = drive
+sys.modules.update({"google": google, "google.colab": colab})
+"""
+        else:
+            prelude += '\nsys.modules["google.colab"] = None\n'
+        expected = self.project / folder if folder else self.project
+        checks = f"""
+import benchmark
+assert PROJECT_ROOT == Path({str(self.project)!r})
+assert Path.cwd() == Path({str(expected)!r})
+assert Path(benchmark.__file__).resolve().parent == PROJECT_ROOT
+assert benchmark.PROJECT_ROOT == PROJECT_ROOT
+assert SETTINGS["seed"] == 42
+"""
+        if colab:
+            checks += '\ndrive.mount.assert_called_once_with("/content/drive")\n'
+        result = subprocess.run(
+            [sys.executable, "-c", prelude + "\n" + source + "\n" + checks],
+            cwd=start, capture_output=True, text=True
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_local_setup_from_root_and_variant_folders(self):
+        for name, folder in self.notebooks:
+            for start in [self.project, self.project / (folder or "cpu")]:
+                with self.subTest(notebook=name, start=start):
+                    self.check_setup(name, folder, start)
+
+    def test_colab_setup_from_unrelated_runtime_folder(self):
+        for name, folder in self.notebooks:
+            with self.subTest(notebook=name):
+                self.check_setup(name, folder, self.runtime, colab=True)
 
 
 class ComparisonTests(unittest.TestCase):
@@ -302,6 +375,23 @@ int main()
         with self.assertRaises(subprocess.CalledProcessError):
             benchmark.run_experiment("cpu", self.settings, self.settings["main"], self.root,
                                      executable=executable)
+
+    def test_drive_executables_run_locally_and_keep_saved_outputs(self):
+        original_runner = subprocess.run
+        with patch("benchmark.Path.is_relative_to", return_value=True), \
+             patch("benchmark.subprocess.run", wraps=original_runner) as runner:
+            main = benchmark.run_main("cpu", self.settings)
+            rows = benchmark.run_scaling("cpu", self.settings)
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(len(runner.call_args_list), 4)
+        for call in runner.call_args_list:
+            executable = Path(call.args[0][0])
+            self.assertNotEqual(executable, self.root / "cpu/nbody_cpu.out")
+            self.assertFalse(executable.exists())
+        folder = self.root / "cpu"
+        for name in ["positions.csv", "final_state.csv", "run.json", "scaling.csv", "scaling.json"]:
+            self.assertTrue((folder / name).is_file())
+        self.assertEqual(main["executable_sha256"], benchmark.file_digest(folder / "nbody_cpu.out"))
 
     def test_empty_and_cpu_only_comparisons(self):
         namespace, messages = self.execute_comparison()

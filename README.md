@@ -224,6 +224,32 @@ replace the previous run after the solver finishes and its frames are loaded.
 Benchmark and accuracy runs use temporary folders so the saved main frames and
 final state stay intact.
 
+### Google Colab and Drive
+
+All six notebooks mount Google Drive automatically when running in Colab.
+Their settings cell uses this clone location:
+
+```text
+/content/drive/MyDrive/projects/n-body-simulation
+```
+
+Change `DRIVE_PROJECT_ROOT` in that cell if your clone is elsewhere. Keep the
+whole repository in that folder, including [benchmark.py](./benchmark.py) and
+[comparison_config.json](./comparison_config.json). Run the settings cell in
+each new Colab tab and authorize Drive access when prompted; opening a notebook
+from Drive does not mount Drive or select the project folder by itself.
+
+The settings cell prints the selected folder. Saved CSVs, JSON metadata, GIFs
+and generated sources stay in the variant's folder in Drive. Solver binaries
+are copied to temporary runtime storage for execution because the Drive mount
+may not allow running them directly; the executable's reported timings exclude
+this copy. Temporary benchmark outputs are still discarded.
+
+Locally, no Drive setup is needed: start in the project root or a variant folder
+and run the same cells. The comparison notebook can also start in either location.
+
+### Settings and compilation
+
 The settings cell below platform information loads the shared configuration,
 selects the variant's output folder and lists the standard saved filenames,
 while source and executable names stay fixed. The compilation cell passes C++ output
@@ -354,4 +380,6 @@ python -m unittest discover -s tests -p 'test_benchmark.py' -v
 These checks compile small CPU runs and test saved frame steps, output
 preservation, metadata exports and the comparison charts. Temporary fixtures
 exercise the CUDA output formats without pretending to measure GPU performance;
-the CUDA kernels still need to be compiled and run on an NVIDIA GPU.
+the CUDA kernels still need to be compiled and run on an NVIDIA GPU. Notebook
+setup tests cover local root/variant folders and a simulated Colab Drive mount,
+including project paths with spaces and importing the helper in a fresh process.

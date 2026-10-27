@@ -35,9 +35,9 @@
     }
   },
   "configuration_id": "6a3fb11b78f2e250edab089ce33ca079efe055ca640f1f0a8ad58bb3935e287b",
-  "created_at": "2026-10-25T17:54:49.794587+00:00",
+  "created_at": "2026-10-27T15:43:14.049748+00:00",
   "hardware": {
-    "host": "PRATIKs-MacBook-Pro.local",
+    "host": "PRATIKs-MacBook-Pro-2.local",
     "system": "macOS-27.0.1-arm64-arm-64bit",
     "cpu": "arm",
     "gpu": null,
@@ -45,7 +45,7 @@
   },
   "executable_sha256": "53975998bfbeeca90e78ff42bdc0c685e5054e61ddefb1a68c3d799c670999da",
   "artifacts": {
-    "scaling.csv": "74f66847b12c31819a0447bcccfdea2bc984cb58bf5d054795f5bdb9980325eb"
+    "scaling.csv": "36ddb6bec8aa8a069afb6566b8489b053feb9464b7e86898e0970d56d80f7ac1"
   },
   "initial_state_id": "7275d6245fe8cc9b2757a5437419553ce220e5b30a277bc9647e1cace18b1253",
   "timing_scope": "Host compute wall time"

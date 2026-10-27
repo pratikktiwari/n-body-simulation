@@ -79,8 +79,15 @@ def run_experiment(variant, settings, run, directory, executable=None, tree_over
         arguments += [run["save_every"], *physics[1:]]
         if variant == "optimised":
             arguments.append(settings["optimised_slices"])
-    command = [str(executable), *map(str, arguments)]
-    result = subprocess.run(command, cwd=directory, stdout=subprocess.PIPE, text=True, check=True)
+    with TemporaryDirectory(prefix="nbody-executable-") as build:
+        # Colab's Drive mount may not allow executing binaries directly.
+        if executable.is_relative_to("/content/drive"):
+            local_executable = Path(build) / executable.name
+            shutil.copyfile(executable, local_executable)
+            local_executable.chmod(0o755)
+            executable = local_executable
+        command = [str(executable), *map(str, arguments)]
+        result = subprocess.run(command, cwd=directory, stdout=subprocess.PIPE, text=True, check=True)
     report = parse_report(result.stdout)
     integer_fields = {
         "bodies", "steps", "save every", "random seed", "block size", "slices per body",

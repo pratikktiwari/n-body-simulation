@@ -35,9 +35,9 @@
     }
   },
   "configuration_id": "6a3fb11b78f2e250edab089ce33ca079efe055ca640f1f0a8ad58bb3935e287b",
-  "created_at": "2026-10-25T17:53:23.420916+00:00",
+  "created_at": "2026-10-27T15:41:49.722655+00:00",
   "hardware": {
-    "host": "PRATIKs-MacBook-Pro.local",
+    "host": "PRATIKs-MacBook-Pro-2.local",
     "system": "macOS-27.0.1-arm64-arm-64bit",
     "cpu": "arm",
     "gpu": null,
@@ -57,15 +57,15 @@
     "save every": 2,
     "gravitational constant": 0.00100000005,
     "softening": 0.00999999978,
-    "setup time ms": 10.602,
-    "compute time ms": 138075.936,
+    "setup time ms": 0.798,
+    "compute time ms": 136340.23,
     "gpu time ms": 0.0,
-    "saving time ms": 3749.885,
-    "cpu time ms": 139546.005,
-    "ms per step": 138.07593599999998,
-    "billion pairs per sec": 0.724,
-    "gflops": 14.48,
-    "total ms": 141851.365
+    "saving time ms": 3593.285,
+    "cpu time ms": 138421.529,
+    "ms per step": 136.34023000000002,
+    "billion pairs per sec": 0.733,
+    "gflops": 14.67,
+    "total ms": 139946.35
   },
   "initial_state_id": "7275d6245fe8cc9b2757a5437419553ce220e5b30a277bc9647e1cace18b1253",
   "frame_steps": [
